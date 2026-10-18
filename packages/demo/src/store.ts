@@ -1,6 +1,7 @@
 import { createStore } from "dreamland/core";
 
 export type AvailableTransports = "libcurl" | "epoxy";
+export type SearchEngine = "google" | "duckduckgo" | "bing";
 
 export const AVAILABLE_TRANSPORTS: ReadonlyArray<{
 	value: AvailableTransports;
@@ -14,6 +15,8 @@ const DEFAULT_TRANSPORT: AvailableTransports = "libcurl";
 const DEFAULT_HOME_URL = "https://google.com";
 const DEFAULT_MAX_REQUESTS = 200;
 const DEFAULT_TAB_CLOAK = false;
+const DEFAULT_TAB_CLOAK_TITLE = "New Tab";
+const DEFAULT_SEARCH_ENGINE: SearchEngine = "google";
 
 export const demoSettingsStore = createStore(
 	{
@@ -22,6 +25,8 @@ export const demoSettingsStore = createStore(
 		homeUrl: DEFAULT_HOME_URL,
 		maxRequests: DEFAULT_MAX_REQUESTS,
 		tabCloak: DEFAULT_TAB_CLOAK,
+		tabCloakTitle: DEFAULT_TAB_CLOAK_TITLE,
+		searchEngine: DEFAULT_SEARCH_ENGINE as SearchEngine,
 	},
 	{
 		ident: "scramjet-demo-settings",
@@ -92,4 +97,13 @@ export const demoSettingsDefaults = {
 	homeUrl: normalizeHomeUrl(DEFAULT_HOME_URL),
 	maxRequests: DEFAULT_MAX_REQUESTS,
 	tabCloak: DEFAULT_TAB_CLOAK,
+	tabCloakTitle: DEFAULT_TAB_CLOAK_TITLE,
+	searchEngine: DEFAULT_SEARCH_ENGINE,
 };
+
+export function normalizeSearchEngine(value: string): SearchEngine {
+	if (value === "google" || value === "duckduckgo" || value === "bing") {
+		return value;
+	}
+	throw new TypeError(`Unknown search provider: ${value}`);
+}

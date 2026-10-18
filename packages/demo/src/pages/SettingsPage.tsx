@@ -8,6 +8,7 @@ import {
 	demoSettingsStore,
 	normalizeHomeUrl,
 	normalizeMaxRequests,
+	normalizeSearchEngine,
 	normalizeTransport,
 	normalizeWispUrl,
 } from "../store";
@@ -20,6 +21,8 @@ const SettingsView: Component<
 		homeUrlInput: string;
 		maxRequestsInput: string;
 		tabCloakInput: boolean;
+		tabCloakTitleInput: string;
+		searchEngineInput: string;
 		status: string;
 		error: string;
 	},
@@ -30,6 +33,8 @@ const SettingsView: Component<
 	this.homeUrlInput ??= demoSettingsStore.homeUrl;
 	this.maxRequestsInput ??= String(demoSettingsStore.maxRequests);
 	this.tabCloakInput ??= demoSettingsStore.tabCloak;
+	this.tabCloakTitleInput ??= demoSettingsStore.tabCloakTitle;
+	this.searchEngineInput ??= demoSettingsStore.searchEngine;
 	this.status ??= "";
 	this.error ??= "";
 
@@ -39,6 +44,8 @@ const SettingsView: Component<
 		this.homeUrlInput = demoSettingsStore.homeUrl;
 		this.maxRequestsInput = String(demoSettingsStore.maxRequests);
 		this.tabCloakInput = demoSettingsStore.tabCloak;
+		this.tabCloakTitleInput = demoSettingsStore.tabCloakTitle;
+		this.searchEngineInput = demoSettingsStore.searchEngine;
 	};
 
 	const applySettings = async () => {
@@ -50,25 +57,36 @@ const SettingsView: Component<
 			const nextTransport = normalizeTransport(this.transportInput);
 			const nextHomeUrl = normalizeHomeUrl(this.homeUrlInput);
 			const nextMaxRequests = normalizeMaxRequests(this.maxRequestsInput);
+			const nextSearchEngine = normalizeSearchEngine(this.searchEngineInput);
 			const nextTabCloak = Boolean(this.tabCloakInput);
+			const nextTabCloakTitle = this.tabCloakTitleInput.trim();
+			if (nextTabCloak && !nextTabCloakTitle) {
+				throw new TypeError("Enter a tab name to use tab cloaking.");
+			}
 			const wispChanged = nextWispUrl !== demoSettingsStore.wispUrl;
 			const transportChanged = nextTransport !== demoSettingsStore.transport;
 			const tabCloakChanged = nextTabCloak !== demoSettingsStore.tabCloak;
+			const tabCloakTitleChanged =
+				nextTabCloakTitle !== demoSettingsStore.tabCloakTitle;
 
 			demoSettingsStore.wispUrl = nextWispUrl;
 			demoSettingsStore.transport = nextTransport;
 			demoSettingsStore.homeUrl = nextHomeUrl;
 			demoSettingsStore.maxRequests = nextMaxRequests;
 			demoSettingsStore.tabCloak = nextTabCloak;
+			demoSettingsStore.tabCloakTitle = nextTabCloakTitle || "New Tab";
+			demoSettingsStore.searchEngine = nextSearchEngine;
 
 			this.wispUrlInput = nextWispUrl;
 			this.transportInput = nextTransport;
 			this.homeUrlInput = nextHomeUrl;
 			this.maxRequestsInput = String(nextMaxRequests);
 			this.tabCloakInput = nextTabCloak;
+			this.tabCloakTitleInput = nextTabCloakTitle || "New Tab";
+			this.searchEngineInput = nextSearchEngine;
 
-			if (tabCloakChanged) {
-				applyTabCloak(nextTabCloak);
+			if (tabCloakChanged || tabCloakTitleChanged) {
+				applyTabCloak(nextTabCloak, nextTabCloakTitle);
 			}
 			if (wispChanged || transportChanged) {
 				controller.setTransport(getTransport());
@@ -92,10 +110,15 @@ const SettingsView: Component<
 		this.homeUrlInput = demoSettingsDefaults.homeUrl;
 		this.maxRequestsInput = String(demoSettingsDefaults.maxRequests);
 		this.tabCloakInput = demoSettingsDefaults.tabCloak;
+		this.tabCloakTitleInput = demoSettingsDefaults.tabCloakTitle;
+		this.searchEngineInput = demoSettingsDefaults.searchEngine;
 		await applySettings();
 	};
 
-	applyTabCloak(demoSettingsStore.tabCloak);
+	applyTabCloak(
+		demoSettingsStore.tabCloak,
+		demoSettingsStore.tabCloakTitle
+	);
 
 	return (
 		<div class="settings-panel">
@@ -154,6 +177,21 @@ const SettingsView: Component<
 			</label>
 
 			<label class="field">
+				<span class="label">Search provider</span>
+				<select
+					value={use(this.searchEngineInput)}
+					on:change={(e: Event) => {
+						this.searchEngineInput = (e.target as HTMLSelectElement).value;
+					}}
+				>
+					<option value="google">Google</option>
+					<option value="duckduckgo">DuckDuckGo</option>
+					<option value="bing">Bing</option>
+				</select>
+				<span class="hint">Search provider used for plain-text queries.</span>
+			</label>
+
+			<label class="field">
 				<span class="label">Request log limit</span>
 				<input
 					type="number"
@@ -183,6 +221,20 @@ const SettingsView: Component<
 				</span>
 				<span class="hint">
 					Hide the current document title and favicon while the app remains open.
+				</span>
+			</label>
+			<label class="field">
+				<span class="label">Cloaked tab name</span>
+				<input
+					type="text"
+					maxLength={60}
+					value={use(this.tabCloakTitleInput)}
+					on:input={(e: InputEvent) => {
+						this.tabCloakTitleInput = (e.target as HTMLInputElement).value;
+					}}
+				/>
+				<span class="hint">
+					Used while tab cloaking is enabled. Default: New Tab.
 				</span>
 			</label>
 

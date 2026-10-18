@@ -33,6 +33,11 @@ const WISP_PORT = process.env.WISP_PORT || 4142;
 
 if (process.env.VITE_WISP_URL) {
 	process.env.VITE_WISP_URL = normalizeWebsocketUrl(process.env.VITE_WISP_URL);
+} else if (
+	process.env.CODESPACE_NAME &&
+	process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN
+) {
+	process.env.VITE_WISP_URL = `wss://${process.env.CODESPACE_NAME}-${WISP_PORT}.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}/`;
 } else {
 	process.env.VITE_WISP_URL = `ws://localhost:${WISP_PORT}/`;
 }

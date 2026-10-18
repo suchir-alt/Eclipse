@@ -1,6 +1,5 @@
 import {
 	css,
-	type Delegate,
 	type Component,
 	createState,
 } from "dreamland/core";
@@ -16,7 +15,7 @@ import type { Frame } from "@mercuryworkshop/scramjet-controller";
 
 export const browserState = createState({
 	url: demoSettingsStore.homeUrl,
-	frame: null! as Frame,
+	frame: null as Frame | null,
 });
 
 export const Omnibox: Component = function (cx) {
