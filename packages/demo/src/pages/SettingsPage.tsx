@@ -1,5 +1,6 @@
 import { css, type Component } from "dreamland/core";
 import { controller, getTransport } from "..";
+import { applyTabCloak } from "../tabCloak";
 import {
 	AVAILABLE_TRANSPORTS,
 	type AvailableTransports,
@@ -18,6 +19,7 @@ const SettingsView: Component<
 		transportInput: AvailableTransports;
 		homeUrlInput: string;
 		maxRequestsInput: string;
+		tabCloakInput: boolean;
 		status: string;
 		error: string;
 	},
@@ -27,6 +29,7 @@ const SettingsView: Component<
 	this.transportInput ??= demoSettingsStore.transport;
 	this.homeUrlInput ??= demoSettingsStore.homeUrl;
 	this.maxRequestsInput ??= String(demoSettingsStore.maxRequests);
+	this.tabCloakInput ??= demoSettingsStore.tabCloak;
 	this.status ??= "";
 	this.error ??= "";
 
@@ -35,6 +38,7 @@ const SettingsView: Component<
 		this.transportInput = demoSettingsStore.transport;
 		this.homeUrlInput = demoSettingsStore.homeUrl;
 		this.maxRequestsInput = String(demoSettingsStore.maxRequests);
+		this.tabCloakInput = demoSettingsStore.tabCloak;
 	};
 
 	const applySettings = async () => {
@@ -46,25 +50,32 @@ const SettingsView: Component<
 			const nextTransport = normalizeTransport(this.transportInput);
 			const nextHomeUrl = normalizeHomeUrl(this.homeUrlInput);
 			const nextMaxRequests = normalizeMaxRequests(this.maxRequestsInput);
+			const nextTabCloak = Boolean(this.tabCloakInput);
 			const wispChanged = nextWispUrl !== demoSettingsStore.wispUrl;
 			const transportChanged = nextTransport !== demoSettingsStore.transport;
+			const tabCloakChanged = nextTabCloak !== demoSettingsStore.tabCloak;
 
 			demoSettingsStore.wispUrl = nextWispUrl;
 			demoSettingsStore.transport = nextTransport;
 			demoSettingsStore.homeUrl = nextHomeUrl;
 			demoSettingsStore.maxRequests = nextMaxRequests;
+			demoSettingsStore.tabCloak = nextTabCloak;
 
 			this.wispUrlInput = nextWispUrl;
 			this.transportInput = nextTransport;
 			this.homeUrlInput = nextHomeUrl;
 			this.maxRequestsInput = String(nextMaxRequests);
+			this.tabCloakInput = nextTabCloak;
 
+			if (tabCloakChanged) {
+				applyTabCloak(nextTabCloak);
+			}
 			if (wispChanged || transportChanged) {
 				controller.setTransport(getTransport());
 			}
 			this.status =
-				wispChanged || transportChanged
-					? "Settings saved. Transport updated for new requests."
+				wispChanged || transportChanged || tabCloakChanged
+					? "Settings saved."
 					: "Settings saved.";
 		} catch (error) {
 			this.status = "";
@@ -80,8 +91,11 @@ const SettingsView: Component<
 		this.transportInput = demoSettingsDefaults.transport;
 		this.homeUrlInput = demoSettingsDefaults.homeUrl;
 		this.maxRequestsInput = String(demoSettingsDefaults.maxRequests);
+		this.tabCloakInput = demoSettingsDefaults.tabCloak;
 		await applySettings();
 	};
+
+	applyTabCloak(demoSettingsStore.tabCloak);
 
 	return (
 		<div class="settings-panel">
@@ -153,6 +167,22 @@ const SettingsView: Component<
 				/>
 				<span class="hint">
 					Maximum number of captured requests kept in memory.
+				</span>
+			</label>
+
+			<label class="field checkbox-field">
+				<span class="checkbox-row">
+					<input
+						type="checkbox"
+						checked={use(this.tabCloakInput)}
+						on:change={(e: Event) => {
+							this.tabCloakInput = (e.target as HTMLInputElement).checked;
+						}}
+					/>
+					<span class="label">Tab cloaking</span>
+				</span>
+				<span class="hint">
+					Hide the current document title and favicon while the app remains open.
 				</span>
 			</label>
 
@@ -230,6 +260,16 @@ SettingsView.style = css`
 		max-width: 720px;
 	}
 
+	.checkbox-field {
+		gap: 10px;
+	}
+
+	.checkbox-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
 	.label {
 		font-size: 0.84rem;
 		font-weight: 600;
@@ -248,6 +288,13 @@ SettingsView.style = css`
 		font-size: 0.88rem;
 		outline: none;
 		box-sizing: border-box;
+	}
+
+	input[type="checkbox"] {
+		width: auto;
+		height: 16px;
+		margin: 0;
+		accent-color: #d1d5db;
 	}
 
 	input:focus,
