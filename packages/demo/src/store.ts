@@ -13,6 +13,7 @@ const DEFAULT_WISP_URL = import.meta.env.VITE_WISP_URL;
 const DEFAULT_TRANSPORT: AvailableTransports = "libcurl";
 const DEFAULT_HOME_URL = "https://google.com";
 const DEFAULT_MAX_REQUESTS = 200;
+const DEFAULT_TAB_CLOAK = false;
 
 export const demoSettingsStore = createStore(
 	{
@@ -20,6 +21,7 @@ export const demoSettingsStore = createStore(
 		wispUrl: DEFAULT_WISP_URL,
 		homeUrl: DEFAULT_HOME_URL,
 		maxRequests: DEFAULT_MAX_REQUESTS,
+		tabCloak: DEFAULT_TAB_CLOAK,
 	},
 	{
 		ident: "scramjet-demo-settings",
@@ -89,4 +91,5 @@ export const demoSettingsDefaults = {
 	transport: DEFAULT_TRANSPORT,
 	homeUrl: normalizeHomeUrl(DEFAULT_HOME_URL),
 	maxRequests: DEFAULT_MAX_REQUESTS,
+	tabCloak: DEFAULT_TAB_CLOAK,
 };
