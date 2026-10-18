@@ -200,7 +200,13 @@ function isStreamingMediaResponse(
   status: number,
   headers: Headers,
 ): boolean {
-  if (request.initialHeaders.has("range") || status === 206) return true;
+  if (
+    request.initialHeaders.has("range") ||
+    headers.has("content-range") ||
+    status === 206
+  ) {
+    return true;
+  }
   if (destination === "audio" || destination === "video") return true;
 
   const contentType = (headers.get("content-type") ?? "")
