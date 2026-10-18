@@ -25,6 +25,9 @@
 //     404 405 410 414 501. Other statuses pass through. 206 is omitted
 //     because the Cache API spec (Service Workers §cache-put) rejects
 //     partial responses outright.
+//   - Range requests and recognized audio/video, HLS, and DASH responses
+//     bypass this cache because storing them would buffer the entire body
+//     before playback can begin.
 //   - `Cache-Control: no-store` and `Vary: *` opt out.
 //   - Freshness:
 //       1. `Cache-Control: s-maxage` (private cache treats this same as
@@ -44,9 +47,9 @@
 // come later.
 
 import {
-	BareResponse,
-	type ScramjetFetchRequest,
-	type ScramjetHeaders,
+  BareResponse,
+  type ScramjetFetchRequest,
+  type ScramjetHeaders,
 } from "@mercuryworkshop/scramjet";
 import { ManagedPlugin } from "@mercuryworkshop/scramjet-controller";
 import type { Frame } from "@mercuryworkshop/scramjet-controller";
@@ -63,7 +66,7 @@ const STORED_AT_HEADER = "x-sj-cached-at";
  * non-starter regardless of what HTTP allows.
  */
 const DEFAULT_CACHEABLE_STATUSES = new Set([
-	200, 203, 204, 300, 301, 308, 404, 405, 410, 414, 501,
+  200, 203, 204, 300, 301, 308, 404, 405, 410, 414, 501,
 ]);
 
 /**
@@ -74,48 +77,48 @@ const DEFAULT_CACHEABLE_STATUSES = new Set([
 const NULL_BODY_STATUSES = new Set([101, 103, 204, 205, 304]);
 
 interface CacheControlDirectives {
-	"no-store"?: boolean;
-	"no-cache"?: boolean;
-	"must-revalidate"?: boolean;
-	"proxy-revalidate"?: boolean;
-	private?: boolean;
-	public?: boolean;
-	"max-age"?: number;
-	"s-maxage"?: number;
-	"stale-while-revalidate"?: number;
-	"stale-if-error"?: number;
-	immutable?: boolean;
+  "no-store"?: boolean;
+  "no-cache"?: boolean;
+  "must-revalidate"?: boolean;
+  "proxy-revalidate"?: boolean;
+  private?: boolean;
+  public?: boolean;
+  "max-age"?: number;
+  "s-maxage"?: number;
+  "stale-while-revalidate"?: number;
+  "stale-if-error"?: number;
+  immutable?: boolean;
 }
 
 function parseCacheControl(value: string | null): CacheControlDirectives {
-	const out: CacheControlDirectives = {};
-	if (!value) return out;
-	for (const raw of value.split(",")) {
-		const part = raw.trim();
-		if (!part) continue;
-		const eq = part.indexOf("=");
-		const name = (eq === -1 ? part : part.slice(0, eq))
-			.trim()
-			.toLowerCase() as keyof CacheControlDirectives;
-		if (eq === -1) {
-			(out as any)[name] = true;
-			continue;
-		}
-		let v = part.slice(eq + 1).trim();
-		if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
-		if (
-			name === "max-age" ||
-			name === "s-maxage" ||
-			name === "stale-while-revalidate" ||
-			name === "stale-if-error"
-		) {
-			const n = parseInt(v, 10);
-			if (Number.isFinite(n) && n >= 0) (out as any)[name] = n;
-		} else {
-			(out as any)[name] = true;
-		}
-	}
-	return out;
+  const out: CacheControlDirectives = {};
+  if (!value) return out;
+  for (const raw of value.split(",")) {
+    const part = raw.trim();
+    if (!part) continue;
+    const eq = part.indexOf("=");
+    const name = (eq === -1 ? part : part.slice(0, eq))
+      .trim()
+      .toLowerCase() as keyof CacheControlDirectives;
+    if (eq === -1) {
+      (out as any)[name] = true;
+      continue;
+    }
+    let v = part.slice(eq + 1).trim();
+    if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1);
+    if (
+      name === "max-age" ||
+      name === "s-maxage" ||
+      name === "stale-while-revalidate" ||
+      name === "stale-if-error"
+    ) {
+      const n = parseInt(v, 10);
+      if (Number.isFinite(n) && n >= 0) (out as any)[name] = n;
+    } else {
+      (out as any)[name] = true;
+    }
+  }
+  return out;
 }
 
 /**
@@ -123,43 +126,43 @@ function parseCacheControl(value: string | null): CacheControlDirectives {
  * cache (so s-maxage is treated identically to max-age).
  */
 function freshnessLifetimeSeconds(
-	headers: Headers,
-	cc: CacheControlDirectives,
-	dateMs: number
+  headers: Headers,
+  cc: CacheControlDirectives,
+  dateMs: number,
 ): number | null {
-	if (cc["s-maxage"] !== undefined) return cc["s-maxage"];
-	if (cc["max-age"] !== undefined) return cc["max-age"];
+  if (cc["s-maxage"] !== undefined) return cc["s-maxage"];
+  if (cc["max-age"] !== undefined) return cc["max-age"];
 
-	const expires = headers.get("expires");
-	if (expires) {
-		const expMs = Date.parse(expires);
-		if (Number.isFinite(expMs)) {
-			return Math.max(0, (expMs - dateMs) / 1000);
-		}
-	}
+  const expires = headers.get("expires");
+  if (expires) {
+    const expMs = Date.parse(expires);
+    if (Number.isFinite(expMs)) {
+      return Math.max(0, (expMs - dateMs) / 1000);
+    }
+  }
 
-	const lastModified = headers.get("last-modified");
-	if (lastModified) {
-		const lmMs = Date.parse(lastModified);
-		if (Number.isFinite(lmMs) && lmMs <= dateMs) {
-			// RFC 9111 §4.2.2 heuristic: 10% of the time since Last-Modified.
-			return ((dateMs - lmMs) * 0.1) / 1000;
-		}
-	}
+  const lastModified = headers.get("last-modified");
+  if (lastModified) {
+    const lmMs = Date.parse(lastModified);
+    if (Number.isFinite(lmMs) && lmMs <= dateMs) {
+      // RFC 9111 §4.2.2 heuristic: 10% of the time since Last-Modified.
+      return ((dateMs - lmMs) * 0.1) / 1000;
+    }
+  }
 
-	return null;
+  return null;
 }
 
 /** Current age (seconds) of a stored response per RFC 9111 §4.2.3. */
 function currentAgeSeconds(headers: Headers, storedAtMs: number): number {
-	const ageHeader = headers.get("age");
-	const initialAge = ageHeader ? parseInt(ageHeader, 10) || 0 : 0;
-	const residentTime = (Date.now() - storedAtMs) / 1000;
-	return initialAge + residentTime;
+  const ageHeader = headers.get("age");
+  const initialAge = ageHeader ? parseInt(ageHeader, 10) || 0 : 0;
+  const residentTime = (Date.now() - storedAtMs) / 1000;
+  return initialAge + residentTime;
 }
 
 function isCacheableMethod(method: string): boolean {
-	return method === "GET" || method === "HEAD";
+  return method === "GET" || method === "HEAD";
 }
 
 /**
@@ -168,65 +171,98 @@ function isCacheableMethod(method: string): boolean {
  * headers, not yet through scramjet's response-header rewriter.
  */
 function responseIsStorable(
-	status: number,
-	headers: Headers,
-	method: string
+  status: number,
+  headers: Headers,
+  method: string,
 ): boolean {
-	if (!isCacheableMethod(method)) return false;
-	if (!DEFAULT_CACHEABLE_STATUSES.has(status)) return false;
+  if (!isCacheableMethod(method)) return false;
+  if (!DEFAULT_CACHEABLE_STATUSES.has(status)) return false;
 
-	const cc = parseCacheControl(headers.get("cache-control"));
-	if (cc["no-store"]) return false;
+  const cc = parseCacheControl(headers.get("cache-control"));
+  if (cc["no-store"]) return false;
 
-	// "Vary: *" means "never reusable".
-	const vary = headers.get("vary");
-	if (vary && vary.split(",").some((v) => v.trim() === "*")) return false;
+  // "Vary: *" means "never reusable".
+  const vary = headers.get("vary");
+  if (vary && vary.split(",").some((v) => v.trim() === "*")) return false;
 
-	return true;
+  return true;
+}
+
+/**
+ * Media responses must reach the consumer as a stream. The cache's current
+ * storage path buffers a complete response before returning it, which stalls
+ * HLS/DASH segment loads and range-based media playback.
+ */
+function isStreamingMediaResponse(
+  request: ScramjetFetchRequest,
+  destination: RequestDestination,
+  url: URL,
+  status: number,
+  headers: Headers,
+): boolean {
+  if (request.initialHeaders.has("range") || status === 206) return true;
+  if (destination === "audio" || destination === "video") return true;
+
+  const contentType = (headers.get("content-type") ?? "")
+    .split(";", 1)[0]
+    .trim()
+    .toLowerCase();
+  if (
+    /^(?:audio|video)\//.test(contentType) ||
+    /^application\/(?:vnd\.apple\.mpegurl|x-mpegurl|dash\+xml|vnd\.ms-sstr\+xml)$/.test(
+      contentType,
+    )
+  ) {
+    return true;
+  }
+
+  return /\.(?:m3u8|mpd|m4s|ts|mp4|m4v|m4a|mp3|aac|webm|og[gv]|mov|mkv|flv|avi)$/i.test(
+    url.pathname,
+  );
 }
 
 /** Build a synthetic cache-key Request keyed by the *underlying* URL. */
 function buildCacheKeyRequest(
-	parsedUrl: string,
-	headers: ScramjetHeaders
+  parsedUrl: string,
+  headers: ScramjetHeaders,
 ): Request {
-	const native = new Headers();
-	for (const [k, v] of headers.toRawHeaders()) {
-		try {
-			native.append(k, v);
-		} catch {}
-	}
-	const cacheKeyUrl =
-		"https://sj-cache.invalid/" + encodeURIComponent(parsedUrl);
-	return new Request(cacheKeyUrl, { method: "GET", headers: native });
+  const native = new Headers();
+  for (const [k, v] of headers.toRawHeaders()) {
+    try {
+      native.append(k, v);
+    } catch {}
+  }
+  const cacheKeyUrl =
+    "https://sj-cache.invalid/" + encodeURIComponent(parsedUrl);
+  return new Request(cacheKeyUrl, { method: "GET", headers: native });
 }
 
 /** Rebuild a Headers object from the BareResponse's rawHeaders array. */
 function nativeHeadersFromRaw(
-	raw: ReadonlyArray<readonly [string, string]>
+  raw: ReadonlyArray<readonly [string, string]>,
 ): Headers {
-	const h = new Headers();
-	for (const [k, v] of raw) {
-		try {
-			h.append(k, v);
-		} catch {
-			// some upstream headers (e.g. malformed Set-Cookie) are rejected
-			// by the native Headers; just drop them.
-		}
-	}
-	return h;
+  const h = new Headers();
+  for (const [k, v] of raw) {
+    try {
+      h.append(k, v);
+    } catch {
+      // some upstream headers (e.g. malformed Set-Cookie) are rejected
+      // by the native Headers; just drop them.
+    }
+  }
+  return h;
 }
 
 /** Strip our internal bookkeeping from a stored Response's headers. */
 function strippedHeadersFromStored(stored: Response): Headers {
-	const out = new Headers();
-	for (const [k, v] of stored.headers.entries()) {
-		if (k.toLowerCase() === STORED_AT_HEADER) continue;
-		try {
-			out.append(k, v);
-		} catch {}
-	}
-	return out;
+  const out = new Headers();
+  for (const [k, v] of stored.headers.entries()) {
+    if (k.toLowerCase() === STORED_AT_HEADER) continue;
+    try {
+      out.append(k, v);
+    } catch {}
+  }
+  return out;
 }
 
 /**
@@ -237,37 +273,37 @@ function strippedHeadersFromStored(stored: Response): Headers {
  * Returns the buffered bytes too so the caller can hand them off elsewhere.
  */
 async function rebuildBareResponseWithBuffer(
-	bare: BareResponse
+  bare: BareResponse,
 ): Promise<{ replacement: BareResponse; bodyBuffer: ArrayBuffer | null }> {
-	const status = bare.status;
-	const isNullBody = NULL_BODY_STATUSES.has(status);
+  const status = bare.status;
+  const isNullBody = NULL_BODY_STATUSES.has(status);
 
-	const headers = nativeHeadersFromRaw(bare.rawHeaders);
+  const headers = nativeHeadersFromRaw(bare.rawHeaders);
 
-	if (isNullBody) {
-		return {
-			replacement: BareResponse.fromNativeResponse(
-				new Response(null, {
-					status,
-					statusText: bare.statusText,
-					headers,
-				})
-			),
-			bodyBuffer: null,
-		};
-	}
+  if (isNullBody) {
+    return {
+      replacement: BareResponse.fromNativeResponse(
+        new Response(null, {
+          status,
+          statusText: bare.statusText,
+          headers,
+        }),
+      ),
+      bodyBuffer: null,
+    };
+  }
 
-	const buf = await bare.arrayBuffer();
-	return {
-		replacement: BareResponse.fromNativeResponse(
-			new Response(buf, {
-				status,
-				statusText: bare.statusText,
-				headers,
-			})
-		),
-		bodyBuffer: buf,
-	};
+  const buf = await bare.arrayBuffer();
+  return {
+    replacement: BareResponse.fromNativeResponse(
+      new Response(buf, {
+        status,
+        statusText: bare.statusText,
+        headers,
+      }),
+    ),
+    bodyBuffer: buf,
+  };
 }
 
 /**
@@ -275,23 +311,23 @@ async function rebuildBareResponseWithBuffer(
  * STORED_AT_HEADER so freshness can be computed on later lookups.
  */
 function buildStorableResponse(
-	body: ArrayBuffer | null,
-	status: number,
-	statusText: string,
-	rawHeaders: ReadonlyArray<readonly [string, string]>
+  body: ArrayBuffer | null,
+  status: number,
+  statusText: string,
+  rawHeaders: ReadonlyArray<readonly [string, string]>,
 ): Response {
-	const native = nativeHeadersFromRaw(rawHeaders);
-	native.set(STORED_AT_HEADER, String(Date.now()));
-	return new Response(NULL_BODY_STATUSES.has(status) ? null : body, {
-		status,
-		statusText,
-		headers: native,
-	});
+  const native = nativeHeadersFromRaw(rawHeaders);
+  native.set(STORED_AT_HEADER, String(Date.now()));
+  return new Response(NULL_BODY_STATUSES.has(status) ? null : body, {
+    status,
+    statusText,
+    headers: native,
+  });
 }
 
 export interface HttpCachePluginOptions {
-	/** Name of the underlying Cache API entry. Defaults to CACHE_NAME. */
-	cacheName?: string;
+  /** Name of the underlying Cache API entry. Defaults to CACHE_NAME. */
+  cacheName?: string;
 }
 
 /**
@@ -302,174 +338,185 @@ export interface HttpCachePluginOptions {
  * per-Frame, so nothing leaks across installs.
  */
 export class HttpCachePlugin extends ManagedPlugin {
-	readonly cacheName: string;
+  readonly cacheName: string;
 
-	private cachePromise: Promise<Cache> | null = null;
-	// Marks requests whose `earlyResponse` we sourced from the cache, so the
-	// preresponse hook below knows not to re-store them. WeakMap keys are
-	// the request objects so entries clean themselves up automatically.
-	private cameFromCache = new WeakMap<ScramjetFetchRequest, true>();
+  private cachePromise: Promise<Cache> | null = null;
+  // Marks requests whose `earlyResponse` we sourced from the cache, so the
+  // preresponse hook below knows not to re-store them. WeakMap keys are
+  // the request objects so entries clean themselves up automatically.
+  private cameFromCache = new WeakMap<ScramjetFetchRequest, true>();
 
-	constructor(options: HttpCachePluginOptions = {}) {
-		super("scramjet-http-cache", []);
-		this.cacheName = options.cacheName ?? CACHE_NAME;
-	}
+  constructor(options: HttpCachePluginOptions = {}) {
+    super("scramjet-http-cache", []);
+    this.cacheName = options.cacheName ?? CACHE_NAME;
+  }
 
-	/** Lazy-open the underlying Cache. Memoized for the plugin's lifetime. */
-	private openCache(): Promise<Cache> {
-		if (!this.cachePromise) {
-			this.cachePromise = caches.open(this.cacheName);
-		}
-		return this.cachePromise;
-	}
+  /** Lazy-open the underlying Cache. Memoized for the plugin's lifetime. */
+  private openCache(): Promise<Cache> {
+    if (!this.cachePromise) {
+      this.cachePromise = caches.open(this.cacheName);
+    }
+    return this.cachePromise;
+  }
 
-	install(frame: Frame): void {
-		super.install(frame);
+  install(frame: Frame): void {
+    super.install(frame);
 
-		const hooks = frame.fetchHandler.hooks.fetch;
+    const hooks = frame.fetchHandler.hooks.fetch;
 
-		// ----- request: cache lookup --------------------------------------
-		this.tap(hooks.request, async (ctx, props) => {
-			const req = ctx.request;
-			if (!isCacheableMethod(req.method)) return;
-			const reqCache = req.cache as string;
-			// Honour the request's own cache mode where it asks for fresh data.
-			if (reqCache === "no-store" || reqCache === "reload") return;
-			// Don't undo an earlyResponse another plugin already set.
-			if (props.earlyResponse) return;
+    // ----- request: cache lookup --------------------------------------
+    this.tap(hooks.request, async (ctx, props) => {
+      const req = ctx.request;
+      if (!isCacheableMethod(req.method)) return;
+      const reqCache = req.cache as string;
+      // Honour the request's own cache mode where it asks for fresh data.
+      if (reqCache === "no-store" || reqCache === "reload") return;
+      // Don't undo an earlyResponse another plugin already set.
+      if (props.earlyResponse) return;
 
-			const cache = await this.openCache();
-			const stored = await cache.match(
-				buildCacheKeyRequest(ctx.parsed.url.href, req.initialHeaders)
-			);
-			if (!stored) {
-				return;
-			}
+      const cache = await this.openCache();
+      const stored = await cache.match(
+        buildCacheKeyRequest(ctx.parsed.url.href, req.initialHeaders),
+      );
+      if (!stored) {
+        return;
+      }
 
-			const storedAt = parseInt(
-				stored.headers.get(STORED_AT_HEADER) ?? "0",
-				10
-			);
-			const cc = parseCacheControl(stored.headers.get("cache-control"));
+      const storedAt = parseInt(
+        stored.headers.get(STORED_AT_HEADER) ?? "0",
+        10,
+      );
+      const cc = parseCacheControl(stored.headers.get("cache-control"));
 
-			const pragmaNoCache = (stored.headers.get("pragma") ?? "")
-				.toLowerCase()
-				.includes("no-cache");
-			const mustRevalidateBeforeUse =
-				cc["no-cache"] === true || pragmaNoCache || reqCache === "no-cache";
+      const pragmaNoCache = (stored.headers.get("pragma") ?? "")
+        .toLowerCase()
+        .includes("no-cache");
+      const mustRevalidateBeforeUse =
+        cc["no-cache"] === true || pragmaNoCache || reqCache === "no-cache";
 
-			const dateMs = (() => {
-				const d = stored.headers.get("date");
-				if (d) {
-					const v = Date.parse(d);
-					if (Number.isFinite(v)) return v;
-				}
-				return storedAt || Date.now();
-			})();
+      const dateMs = (() => {
+        const d = stored.headers.get("date");
+        if (d) {
+          const v = Date.parse(d);
+          if (Number.isFinite(v)) return v;
+        }
+        return storedAt || Date.now();
+      })();
 
-			const lifetime = freshnessLifetimeSeconds(stored.headers, cc, dateMs);
-			const age = currentAgeSeconds(stored.headers, storedAt);
-			const fresh =
-				!mustRevalidateBeforeUse && lifetime !== null && age < lifetime;
+      const lifetime = freshnessLifetimeSeconds(stored.headers, cc, dateMs);
+      const age = currentAgeSeconds(stored.headers, storedAt);
+      const fresh =
+        !mustRevalidateBeforeUse && lifetime !== null && age < lifetime;
 
-			// `immutable` short-circuits the freshness check (RFC 8246)
-			// provided the client hasn't asked for a forced revalidation.
-			const immutable =
-				cc.immutable === true &&
-				reqCache !== "no-cache" &&
-				reqCache !== "reload";
+      // `immutable` short-circuits the freshness check (RFC 8246)
+      // provided the client hasn't asked for a forced revalidation.
+      const immutable =
+        cc.immutable === true &&
+        reqCache !== "no-cache" &&
+        reqCache !== "reload";
 
-			if (!fresh && !immutable) {
-				// Stale; fall through to the network. (TODO: 304 revalidation.)
-				return;
-			}
+      if (!fresh && !immutable) {
+        // Stale; fall through to the network. (TODO: 304 revalidation.)
+        return;
+      }
 
-			// Build a BareResponse around the stored bytes/headers and hand
-			// it to doNetworkFetch via earlyResponse. The pipeline will then
-			// run rewriteResponseHeaders/rewriteBody/etc. as if we'd just
-			// fetched it.
-			const headers = strippedHeadersFromStored(stored);
-			// Recompute Age the consumer sees so it isn't stuck at storage
-			// time.
-			if (storedAt) {
-				headers.set("age", String(Math.floor((Date.now() - storedAt) / 1000)));
-			}
+      // Build a BareResponse around the stored bytes/headers and hand
+      // it to doNetworkFetch via earlyResponse. The pipeline will then
+      // run rewriteResponseHeaders/rewriteBody/etc. as if we'd just
+      // fetched it.
+      const headers = strippedHeadersFromStored(stored);
+      // Recompute Age the consumer sees so it isn't stuck at storage
+      // time.
+      if (storedAt) {
+        headers.set("age", String(Math.floor((Date.now() - storedAt) / 1000)));
+      }
 
-			const isNullBody = NULL_BODY_STATUSES.has(stored.status);
-			const earlyBody = isNullBody ? null : await stored.arrayBuffer();
+      const isNullBody = NULL_BODY_STATUSES.has(stored.status);
+      const earlyBody = isNullBody ? null : await stored.arrayBuffer();
 
-			const earlyResponse = BareResponse.fromNativeResponse(
-				new Response(earlyBody, {
-					status: stored.status,
-					statusText: stored.statusText,
-					headers,
-				})
-			);
+      const earlyResponse = BareResponse.fromNativeResponse(
+        new Response(earlyBody, {
+          status: stored.status,
+          statusText: stored.statusText,
+          headers,
+        }),
+      );
 
-			this.cameFromCache.set(req, true);
-			props.earlyResponse = earlyResponse;
-		});
+      this.cameFromCache.set(req, true);
+      props.earlyResponse = earlyResponse;
+    });
 
-		// ----- preresponse: cache store -----------------------------------
-		this.tap(hooks.preresponse, async (ctx, props) => {
-			const req = ctx.request;
-			// Skip if this body came back via cache.match -- restoring it
-			// would just rewrite the same bytes with a fresh STORED_AT_HEADER
-			// (resetting the freshness clock).
-			if (this.cameFromCache.has(req)) {
-				this.cameFromCache.delete(req);
-				return;
-			}
+    // ----- preresponse: cache store -----------------------------------
+    this.tap(hooks.preresponse, async (ctx, props) => {
+      const req = ctx.request;
+      // Skip if this body came back via cache.match -- restoring it
+      // would just rewrite the same bytes with a fresh STORED_AT_HEADER
+      // (resetting the freshness clock).
+      if (this.cameFromCache.has(req)) {
+        this.cameFromCache.delete(req);
+        return;
+      }
 
-			if ((req.cache as string) === "no-store") return;
-			if (!isCacheableMethod(req.method)) return;
+      if ((req.cache as string) === "no-store") return;
+      if (!isCacheableMethod(req.method)) return;
 
-			const headers = nativeHeadersFromRaw(props.response.rawHeaders);
-			if (!responseIsStorable(props.response.status, headers, req.method))
-				return;
+      const headers = nativeHeadersFromRaw(props.response.rawHeaders);
+      if (!responseIsStorable(props.response.status, headers, req.method))
+        return;
+      if (
+        isStreamingMediaResponse(
+          req,
+          ctx.parsed.destination,
+          ctx.parsed.url,
+          props.response.status,
+          headers,
+        )
+      ) {
+        return;
+      }
 
-			// Drain the stream once and rebuild the BareResponse around the
-			// buffered copy so the rest of doHandleFetch can still read it.
-			const { replacement, bodyBuffer } = await rebuildBareResponseWithBuffer(
-				props.response
-			);
-			props.response = replacement;
+      // Drain the stream once and rebuild the BareResponse around the
+      // buffered copy so the rest of doHandleFetch can still read it.
+      const { replacement, bodyBuffer } = await rebuildBareResponseWithBuffer(
+        props.response,
+      );
+      props.response = replacement;
 
-			const cacheKey = buildCacheKeyRequest(
-				ctx.parsed.url.href,
-				req.initialHeaders
-			);
-			const toStore = buildStorableResponse(
-				bodyBuffer,
-				props.response.status,
-				props.response.statusText,
-				props.response.rawHeaders
-			);
+      const cacheKey = buildCacheKeyRequest(
+        ctx.parsed.url.href,
+        req.initialHeaders,
+      );
+      const toStore = buildStorableResponse(
+        bodyBuffer,
+        props.response.status,
+        props.response.statusText,
+        props.response.rawHeaders,
+      );
 
-			try {
-				const cache = await this.openCache();
-				await cache.put(cacheKey, toStore);
-			} catch (err) {
-				// Cache.put can fail on opaque or oddly-headered responses;
-				// don't let a cache write failure break the actual fetch.
-				console.warn("[scramjet-http-cache] cache.put failed:", err);
-			}
-		});
-	}
+      try {
+        const cache = await this.openCache();
+        await cache.put(cacheKey, toStore);
+      } catch (err) {
+        // Cache.put can fail on opaque or oddly-headered responses;
+        // don't let a cache write failure break the actual fetch.
+        console.warn("[scramjet-http-cache] cache.put failed:", err);
+      }
+    });
+  }
 
-	/**
-	 * Drop every entry in the HTTP cache. Returns whether the underlying
-	 * Cache existed and was deleted.
-	 */
-	async bust(): Promise<boolean> {
-		try {
-			// Drop the memoized handle too; the next install will re-open
-			// against a fresh empty cache.
-			this.cachePromise = null;
-			return await caches.delete(this.cacheName);
-		} catch (err) {
-			console.error("[scramjet-http-cache] bust failed:", err);
-			return false;
-		}
-	}
+  /**
+   * Drop every entry in the HTTP cache. Returns whether the underlying
+   * Cache existed and was deleted.
+   */
+  async bust(): Promise<boolean> {
+    try {
+      // Drop the memoized handle too; the next install will re-open
+      // against a fresh empty cache.
+      this.cachePromise = null;
+      return await caches.delete(this.cacheName);
+    } catch (err) {
+      console.error("[scramjet-http-cache] bust failed:", err);
+      return false;
+    }
+  }
 }
