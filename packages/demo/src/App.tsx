@@ -41,7 +41,7 @@ const App: Component<
 			/>
 			<div
 				class={use(this.activeTab).map((tab) =>
-					tab === "home" || tab === "setup" ? "workspace hidden" : "workspace"
+					tab === "home" || tab === "setup" ? "workspace hidden" : "workspace",
 				)}
 			>
 				<div class="top-bar">
@@ -57,7 +57,7 @@ const App: Component<
 					<div class="tab-bar">
 						<button
 							class={use(this.activeTab).map(
-								(tab) => `tab-button ${tab === "browser" ? "active" : ""}`
+								(tab) => `tab-button ${tab === "browser" ? "active" : ""}`,
 							)}
 							on:click={() => {
 								this.activeTab = "browser";
@@ -67,7 +67,7 @@ const App: Component<
 						</button>
 						<button
 							class={use(this.activeTab).map(
-								(tab) => `tab-button ${tab === "requests" ? "active" : ""}`
+								(tab) => `tab-button ${tab === "requests" ? "active" : ""}`,
 							)}
 							on:click={() => {
 								this.activeTab = "requests";
@@ -75,12 +75,12 @@ const App: Component<
 						>
 							Requests{" "}
 							{use(requestsState.requests).map((requests) =>
-								requests.length ? `(${requests.length})` : ""
+								requests.length ? `(${requests.length})` : "",
 							)}
 						</button>
 						<button
 							class={use(this.activeTab).map(
-								(tab) => `tab-button ${tab === "playground" ? "active" : ""}`
+								(tab) => `tab-button ${tab === "playground" ? "active" : ""}`,
 							)}
 							on:click={() => {
 								this.activeTab = "playground";
@@ -90,7 +90,7 @@ const App: Component<
 						</button>
 						<button
 							class={use(this.activeTab).map(
-								(tab) => `tab-button ${tab === "settings" ? "active" : ""}`
+								(tab) => `tab-button ${tab === "settings" ? "active" : ""}`,
 							)}
 							on:click={() => {
 								this.activeTab = "settings";
@@ -109,7 +109,7 @@ const App: Component<
 				<div
 					class={use(this.activeTab).map(
 						(tab) =>
-							`tab-panel browser-panel ${tab === "browser" ? "active" : ""}`
+							`tab-panel browser-panel ${tab === "browser" ? "active" : ""}`,
 					)}
 				>
 					<BrowserView
@@ -119,7 +119,7 @@ const App: Component<
 				<div
 					class={use(this.activeTab).map(
 						(tab) =>
-							`tab-panel requests-panel ${tab === "requests" ? "active" : ""}`
+							`tab-panel requests-panel ${tab === "requests" ? "active" : ""}`,
 					)}
 				>
 					<RequestViewer
@@ -129,7 +129,7 @@ const App: Component<
 				<div
 					class={use(this.activeTab).map(
 						(tab) =>
-							`tab-panel playground-panel ${tab === "playground" ? "active" : ""}`
+							`tab-panel playground-panel ${tab === "playground" ? "active" : ""}`,
 					)}
 				>
 					<PlaygroundView
@@ -139,7 +139,7 @@ const App: Component<
 				<div
 					class={use(this.activeTab).map(
 						(tab) =>
-							`tab-panel settings-tab ${tab === "settings" ? "active" : ""}`
+							`tab-panel settings-tab ${tab === "settings" ? "active" : ""}`,
 					)}
 				>
 					<SettingsView />
@@ -155,6 +155,7 @@ App.style = css`
 	:scope {
 		width: 100vw;
 		height: 100vh;
+		display: flex;
 		margin: 0;
 		overflow: hidden;
 		position: absolute;
@@ -162,8 +163,15 @@ App.style = css`
 		left: 0;
 
 		padding: 0;
-		background: #09111f;
+		background: #0b111a;
 		box-sizing: border-box;
+	}
+	.app-shell {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		min-width: 0;
+		min-height: 0;
 	}
 	.workspace {
 		width: 100%;

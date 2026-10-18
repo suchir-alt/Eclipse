@@ -41,14 +41,18 @@ export const Omnibox: Component = function (cx) {
 						class="nav-btn"
 						on:click={() => browserState.frame?.back()}
 					>
-						<span class="material-symbols-outlined">arrow_back</span>
+						<span class="nav-arrow" aria-hidden="true">
+							←
+						</span>
 					</button>
 					<button
 						type="button"
 						class="nav-btn"
 						on:click={() => browserState.frame?.forward()}
 					>
-						<span class="material-symbols-outlined">arrow_forward</span>
+						<span class="nav-arrow" aria-hidden="true">
+							→
+						</span>
 					</button>
 					<button
 						type="button"
@@ -123,6 +127,21 @@ Omnibox.style = css`
 			"wght" 300,
 			"FILL" 0,
 			"GRAD" 0;
+	}
+	.nav-arrow {
+		display: inline-block;
+		font-family: inherit;
+		font-size: 1.25rem;
+		font-weight: 450;
+		line-height: 1;
+		transform: translateY(-1px);
+		transition: transform 160ms ease;
+	}
+	.nav-btn:hover .nav-arrow {
+		transform: translate(2px, -1px);
+	}
+	.nav-btn:first-child:hover .nav-arrow {
+		transform: translate(-2px, -1px);
 	}
 	.url-input {
 		box-sizing: border-box;

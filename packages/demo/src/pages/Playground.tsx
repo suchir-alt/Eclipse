@@ -828,10 +828,14 @@ const PlaygroundView: Component<
 							<div class="omnibox-shell">
 								<div class="omnibox-nav" aria-hidden="true">
 									<button type="button" class="nav-btn">
-										<span class="material-symbols-outlined">arrow_back</span>
+										<span class="nav-arrow" aria-hidden="true">
+											←
+										</span>
 									</button>
 									<button type="button" class="nav-btn">
-										<span class="material-symbols-outlined">arrow_forward</span>
+										<span class="nav-arrow" aria-hidden="true">
+											→
+										</span>
 									</button>
 									<button
 										type="button"
@@ -1434,8 +1438,20 @@ PlaygroundView.style = css`
 		align-items: center;
 		justify-content: center;
 	}
-	.nav-btn .material-symbols-outlined {
-		font-size: 15px;
+	.nav-btn .nav-arrow {
+		display: inline-block;
+		font-family: inherit;
+		font-size: 1.25rem;
+		font-weight: 450;
+		line-height: 1;
+		transform: translateY(-1px);
+		transition: transform 160ms ease;
+	}
+	.nav-btn:hover .nav-arrow {
+		transform: translate(2px, -1px);
+	}
+	.nav-btn:first-child:hover .nav-arrow {
+		transform: translate(-2px, -1px);
 	}
 	.nav-btn:hover {
 		background: #1f1f1f;

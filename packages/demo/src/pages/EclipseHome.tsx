@@ -4,10 +4,8 @@ import {
 	type AvailableTransports,
 	type SearchEngine,
 	demoSettingsStore,
-	normalizeMaxRequests,
 	normalizeSearchEngine,
 	normalizeTransport,
-	normalizeWispUrl,
 } from "../store";
 import { applyTabCloak } from "../tabCloak";
 import { browserState } from "./BrowserView";
@@ -49,7 +47,10 @@ const LandingPage: Component<{
 						experience your own.
 					</p>
 					<button class="start-button" on:click={this.onStart}>
-						Start Browsing <span aria-hidden="true">-&gt;</span>
+						<span class="start-label">Start Browsing</span>
+						<span class="start-arrow" aria-hidden="true">
+							→
+						</span>
 					</button>
 					<div class="button-note">
 						<span></span> Your browsing settings stay on this device
@@ -103,7 +104,10 @@ const LandingPage: Component<{
 						target="_blank"
 						rel="noopener noreferrer"
 					>
-						GitHub <span aria-hidden="true">↗</span>
+						GitHub{" "}
+						<span class="footer-arrow" aria-hidden="true">
+							→
+						</span>
 					</a>
 				</footer>
 			</div>
@@ -117,15 +121,18 @@ LandingPage.style = css`
 		flex: 1;
 		min-width: 0;
 		min-height: 0;
-		overflow: auto;
+		height: 100%;
+		overflow-x: hidden;
+		overflow-y: auto;
+		overscroll-behavior: contain;
 		background:
 			radial-gradient(
 				ellipse at 50% 5%,
-				rgba(45, 92, 155, 0.2),
+				rgba(40, 116, 111, 0.14),
 				transparent 38%
 			),
-			linear-gradient(145deg, #080f1d 0%, #0b1425 54%, #0a1020 100%);
-		color: #e9f0ff;
+			linear-gradient(145deg, #0b111a 0%, #101b23 54%, #0c151b 100%);
+		color: #e5eee9;
 		font-family:
 			Inter,
 			ui-sans-serif,
@@ -135,18 +142,19 @@ LandingPage.style = css`
 			sans-serif;
 	}
 	:scope.active {
-		display: block;
+		display: flex;
 	}
 	.home-shell {
-		width: min(1040px, calc(100% - 48px));
+		width: min(920px, calc(100% - 48px));
 		margin: 0 auto;
+		padding-bottom: 12px;
 	}
 	.brand-row {
 		height: 78px;
 		display: flex;
 		align-items: center;
 		gap: 13px;
-		border-bottom: 1px solid rgba(160, 187, 227, 0.12);
+		border-bottom: 1px solid rgba(158, 196, 185, 0.13);
 	}
 	.brand-mark {
 		position: relative;
@@ -156,21 +164,21 @@ LandingPage.style = css`
 		align-items: center;
 		justify-content: center;
 		gap: 3px;
-		border: 1px solid rgba(126, 178, 255, 0.55);
+		border: 1px solid rgba(112, 205, 177, 0.55);
 		border-radius: 9px;
 		transform: rotate(45deg);
 		background: linear-gradient(
 			145deg,
-			rgba(67, 126, 210, 0.28),
-			rgba(16, 34, 62, 0.4)
+			rgba(44, 131, 113, 0.28),
+			rgba(19, 47, 47, 0.4)
 		);
 	}
 	.brand-mark span {
 		width: 3px;
 		height: 13px;
 		border-radius: 4px;
-		background: #92c5ff;
-		box-shadow: 0 0 10px rgba(106, 177, 255, 0.5);
+		background: #83dfc0;
+		box-shadow: 0 0 10px rgba(106, 219, 180, 0.42);
 	}
 	.brand-mark span:last-child {
 		height: 8px;
@@ -184,7 +192,7 @@ LandingPage.style = css`
 	.brand-divider {
 		height: 16px;
 		width: 1px;
-		background: rgba(160, 187, 227, 0.25);
+		background: rgba(158, 196, 185, 0.24);
 		margin-left: 2px;
 	}
 	.brand-caption {
@@ -193,14 +201,14 @@ LandingPage.style = css`
 		letter-spacing: 0.02em;
 	}
 	.hero {
-		max-width: 700px;
+		max-width: 640px;
 		margin: 0 auto;
-		padding: clamp(64px, 10vh, 104px) 0 84px;
+		padding: clamp(42px, 7vh, 68px) 0 52px;
 		text-align: center;
 	}
 	.eyebrow,
 	.section-kicker {
-		color: #8fbef5;
+		color: #83d6bd;
 		font-size: 0.69rem;
 		font-weight: 700;
 		letter-spacing: 0.18em;
@@ -210,61 +218,90 @@ LandingPage.style = css`
 		align-items: center;
 		gap: 9px;
 		padding: 8px 12px;
-		border: 1px solid rgba(115, 164, 231, 0.2);
+		border: 1px solid rgba(106, 190, 160, 0.23);
 		border-radius: 99px;
-		background: rgba(39, 73, 119, 0.17);
+		background: rgba(36, 91, 77, 0.17);
 	}
 	.eyebrow span,
 	.button-note span {
 		width: 6px;
 		height: 6px;
 		border-radius: 50%;
-		background: #68d8c7;
-		box-shadow: 0 0 10px rgba(104, 216, 199, 0.7);
+		background: #70d8b7;
+		box-shadow: 0 0 10px rgba(104, 216, 169, 0.58);
 	}
 	h1 {
-		margin: 26px 0 18px;
-		font-size: clamp(3.1rem, 8vw, 5.8rem);
-		line-height: 0.98;
-		font-weight: 620;
-		letter-spacing: -0.075em;
+		margin: 21px 0 15px;
+		font-size: clamp(2.45rem, 5.2vw, 4.1rem);
+		line-height: 1.04;
+		font-weight: 610;
+		letter-spacing: -0.065em;
 	}
 	h1 span {
-		color: #85baff;
-		background: linear-gradient(100deg, #91c5ff, #8a9eff 75%);
+		color: #81d9bd;
+		background: linear-gradient(100deg, #83dfc0, #a6d2bb 75%);
 		background-clip: text;
 		-webkit-text-fill-color: transparent;
 	}
 	.hero-copy {
 		max-width: 550px;
 		margin: 0 auto;
-		color: #a4b1c8;
-		font-size: 1rem;
-		line-height: 1.8;
+		color: #a3b4af;
+		font-size: 0.94rem;
+		line-height: 1.72;
 	}
 	.start-button {
-		margin-top: 32px;
-		padding: 15px 22px;
-		border: 1px solid #a3c9ff;
-		border-radius: 9px;
-		background: linear-gradient(135deg, #b4d6ff, #86b6f5);
-		box-shadow: 0 8px 28px rgba(82, 143, 222, 0.24);
-		color: #09172a;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 26px;
+		padding: 13px 20px;
+		border: 1px solid #79cfb0;
+		border-radius: 8px;
+		background: linear-gradient(135deg, #a8e8ce, #83d2b4);
+		box-shadow: 0 8px 25px rgba(64, 165, 128, 0.18);
+		color: #10211d;
 		cursor: pointer;
 		font: inherit;
 		font-size: 0.92rem;
 		font-weight: 730;
 		transition:
 			transform 160ms ease,
-			box-shadow 160ms ease;
+			box-shadow 160ms ease,
+			background 160ms ease;
 	}
-	.start-button span {
-		margin-left: 15px;
-		font-size: 1.1rem;
+	.start-label {
+		letter-spacing: 0.005em;
+	}
+	.start-arrow {
+		display: inline-block;
+		color: #123d31;
+		font-size: 1.45rem;
+		font-weight: 450;
+		line-height: 1;
+		transition:
+			transform 180ms ease,
+			color 180ms ease;
+		transform: translateY(-1px);
 	}
 	.start-button:hover {
 		transform: translateY(-2px);
-		box-shadow: 0 12px 34px rgba(82, 143, 222, 0.35);
+		background: linear-gradient(135deg, #b8f0d9, #8cdbbd);
+		box-shadow: 0 12px 32px rgba(64, 165, 128, 0.28);
+	}
+	.start-button:hover .start-arrow {
+		transform: translateX(4px);
+		color: #0b5940;
+	}
+	.start-button:focus-visible {
+		outline: 3px solid rgba(131, 214, 189, 0.55);
+		outline-offset: 4px;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.start-button,
+		.start-arrow {
+			transition: none;
+		}
 	}
 	.button-note {
 		display: flex;
@@ -272,7 +309,7 @@ LandingPage.style = css`
 		align-items: center;
 		gap: 8px;
 		margin-top: 14px;
-		color: #73839e;
+		color: #7d928a;
 		font-size: 0.74rem;
 	}
 	.button-note span {
@@ -280,40 +317,41 @@ LandingPage.style = css`
 		height: 5px;
 	}
 	.about {
-		border-top: 1px solid rgba(160, 187, 227, 0.14);
-		padding: 46px 0 54px;
+		border-top: 1px solid rgba(158, 196, 185, 0.14);
+		padding: 32px 0 38px;
 	}
 	.about h2 {
 		margin: 12px 0 10px;
-		font-size: 1.75rem;
+		font-size: 1.48rem;
 		font-weight: 570;
 		letter-spacing: -0.04em;
 	}
 	.about > p {
 		max-width: 760px;
 		margin: 0;
-		color: #9cabc3;
-		font-size: 0.92rem;
-		line-height: 1.8;
+		color: #a3b4af;
+		font-size: 0.87rem;
+		line-height: 1.72;
 	}
 	.feature-grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 14px;
-		margin-top: 26px;
+		gap: 0;
+		margin-top: 22px;
 	}
 	.feature-card {
-		padding: 19px;
-		border: 1px solid rgba(145, 176, 222, 0.14);
-		border-radius: 12px;
-		background: linear-gradient(
-			145deg,
-			rgba(23, 40, 67, 0.68),
-			rgba(13, 25, 44, 0.58)
-		);
+		padding: 8px 20px 8px 0;
+		border-right: 1px solid rgba(158, 196, 185, 0.14);
+		background: transparent;
+	}
+	.feature-card + .feature-card {
+		padding-left: 20px;
+	}
+	.feature-card:last-child {
+		border-right: 0;
 	}
 	.feature-icon {
-		color: #7bb7ff;
+		color: #7ed7b8;
 		font-size: 0.7rem;
 		font-weight: 700;
 		letter-spacing: 0.12em;
@@ -325,13 +363,13 @@ LandingPage.style = css`
 	}
 	.feature-card p {
 		margin: 0;
-		color: #8e9db5;
+		color: #91a49d;
 		font-size: 0.8rem;
 		line-height: 1.65;
 	}
 	.about .privacy-note {
 		margin-top: 20px;
-		color: #75849b;
+		color: #7d9189;
 		font-size: 0.76rem;
 	}
 	.home-footer {
@@ -340,22 +378,34 @@ LandingPage.style = css`
 		align-items: center;
 		gap: 14px;
 		padding: 18px 0 25px;
-		border-top: 1px solid rgba(160, 187, 227, 0.12);
-		color: #687992;
+		border-top: 1px solid rgba(158, 196, 185, 0.12);
+		color: #71857d;
 		font-size: 0.68rem;
 		letter-spacing: 0.06em;
 	}
 	.home-footer a {
-		color: #91bdf0;
+		color: #83d6bd;
 		text-decoration: none;
 	}
 	.home-footer a:hover {
-		color: #c7e0ff;
+		color: #c2f1dc;
 		text-decoration: underline;
+	}
+	.footer-arrow {
+		display: inline-block;
+		margin-left: 3px;
+		font-size: 1.15em;
+		font-weight: 450;
+		line-height: 1;
+		transform: translateY(-1px);
+		transition: transform 160ms ease;
+	}
+	.home-footer a:hover .footer-arrow {
+		transform: translate(2px, -1px);
 	}
 	.footer-dot {
 		padding: 0 5px;
-		color: #8fbef5;
+		color: #83d6bd;
 	}
 	@media (max-width: 620px) {
 		.home-shell {
@@ -366,10 +416,19 @@ LandingPage.style = css`
 			display: none;
 		}
 		.hero {
-			padding: 66px 0 60px;
+			padding: 46px 0 42px;
 		}
 		.feature-grid {
 			grid-template-columns: 1fr;
+		}
+		.feature-card,
+		.feature-card + .feature-card {
+			padding: 14px 0;
+			border-right: 0;
+			border-bottom: 1px solid rgba(158, 196, 185, 0.14);
+		}
+		.feature-card:last-child {
+			border-bottom: 0;
 		}
 		.home-footer {
 			gap: 14px;
@@ -390,8 +449,6 @@ const BrowseSetup: Component<
 		transport: AvailableTransports;
 		tabCloak: boolean;
 		tabCloakTitle: string;
-		wispUrl: string;
-		maxRequests: string;
 		error: string;
 	}
 > = function () {
@@ -400,8 +457,6 @@ const BrowseSetup: Component<
 	this.transport ??= demoSettingsStore.transport;
 	this.tabCloak ??= demoSettingsStore.tabCloak;
 	this.tabCloakTitle ??= demoSettingsStore.tabCloakTitle;
-	this.wispUrl ??= demoSettingsStore.wispUrl;
-	this.maxRequests ??= String(demoSettingsStore.maxRequests);
 	this.error ??= "";
 
 	const start = async (event: SubmitEvent) => {
@@ -416,8 +471,6 @@ const BrowseSetup: Component<
 		try {
 			const searchEngine = normalizeSearchEngine(this.searchEngine);
 			const transport = normalizeTransport(this.transport);
-			const wispUrl = normalizeWispUrl(this.wispUrl);
-			const maxRequests = normalizeMaxRequests(this.maxRequests);
 			const tabCloakTitle = this.tabCloakTitle.trim();
 			if (this.tabCloak && !tabCloakTitle) {
 				throw new TypeError("Enter a tab name to use tab cloaking.");
@@ -448,13 +501,9 @@ const BrowseSetup: Component<
 				throw new Error("The browser is still initializing. Please try again.");
 			}
 
-			const transportChanged =
-				transport !== demoSettingsStore.transport ||
-				wispUrl !== demoSettingsStore.wispUrl;
+			const transportChanged = transport !== demoSettingsStore.transport;
 			demoSettingsStore.searchEngine = searchEngine;
 			demoSettingsStore.transport = transport;
-			demoSettingsStore.wispUrl = wispUrl;
-			demoSettingsStore.maxRequests = maxRequests;
 			demoSettingsStore.homeUrl = targetUrl;
 			demoSettingsStore.tabCloak = Boolean(this.tabCloak);
 			demoSettingsStore.tabCloakTitle = tabCloakTitle || "New Tab";
@@ -561,8 +610,8 @@ const BrowseSetup: Component<
 									this.tabCloak = (event.target as HTMLInputElement).checked;
 								}}
 							/>
-							<span class="switch-track">
-								<span></span>
+							<span class="switch-track" aria-hidden="true">
+								<span class="switch-thumb"></span>
 							</span>
 							<span class="cloak-copy">
 								<strong>Enable tab cloaking</strong>
@@ -588,49 +637,6 @@ const BrowseSetup: Component<
 								/>
 							</label>,
 						)}
-						<details class="advanced-settings">
-							<summary>
-								Advanced settings <span>Wisp server and request log limit</span>
-							</summary>
-							<div class="advanced-grid">
-								<label class="field">
-									<span class="field-label">Wisp server</span>
-									<input
-										type="text"
-										spellcheck={false}
-										value={use(this.wispUrl)}
-										on:input={(event: InputEvent) => {
-											this.wispUrl = (event.target as HTMLInputElement).value;
-										}}
-									/>
-									<span class="field-hint">
-										Default: configured Wisp address.
-									</span>
-								</label>
-								<label class="field">
-									<span class="field-label">Request log limit</span>
-									<input
-										type="number"
-										min="10"
-										max="5000"
-										step="10"
-										value={use(this.maxRequests)}
-										on:input={(event: InputEvent) => {
-											this.maxRequests = (
-												event.target as HTMLInputElement
-											).value;
-										}}
-									/>
-									<span class="field-hint">
-										Default: 200 entries. Choose 10-5000.
-									</span>
-								</label>
-							</div>
-							<p class="advanced-note">
-								Request history is held in memory and limited to the selected
-								number of entries.
-							</p>
-						</details>
 					</div>
 					{use(this.error).map((error) =>
 						error ? (
@@ -640,7 +646,10 @@ const BrowseSetup: Component<
 						) : null,
 					)}
 					<button class="browse-button" type="submit">
-						Open in Eclipse <span aria-hidden="true">-&gt;</span>
+						Open in Eclipse
+						<span class="setup-arrow" aria-hidden="true">
+							→
+						</span>
 					</button>
 					<p class="form-note">
 						Proxy browsing is not a substitute for a VPN or an anonymity
@@ -658,15 +667,18 @@ BrowseSetup.style = css`
 		flex: 1;
 		min-width: 0;
 		min-height: 0;
-		overflow: auto;
+		height: 100%;
+		overflow-x: hidden;
+		overflow-y: auto;
+		overscroll-behavior: contain;
 		background:
 			radial-gradient(
 				ellipse at 75% 0%,
-				rgba(39, 82, 143, 0.18),
+				rgba(40, 116, 111, 0.13),
 				transparent 35%
 			),
-			#09111f;
-		color: #e7eefb;
+			#0b111a;
+		color: #e5eee9;
 		font-family:
 			Inter,
 			ui-sans-serif,
@@ -676,7 +688,7 @@ BrowseSetup.style = css`
 			sans-serif;
 	}
 	:scope.active {
-		display: block;
+		display: flex;
 	}
 	.setup-shell {
 		width: min(760px, calc(100% - 36px));
@@ -688,23 +700,23 @@ BrowseSetup.style = css`
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		border-bottom: 1px solid rgba(160, 187, 227, 0.12);
+		border-bottom: 1px solid rgba(158, 196, 185, 0.13);
 	}
 	.back-link {
 		padding: 8px 0;
 		border: 0;
 		background: transparent;
-		color: #9aabc4;
+		color: #9aada5;
 		cursor: pointer;
 		font: inherit;
 		font-size: 0.83rem;
 	}
 	.back-link:hover {
-		color: #dceaff;
+		color: #dcf0e8;
 	}
 	.back-link span {
 		padding-right: 5px;
-		color: #8fbef5;
+		color: #83d6bd;
 	}
 	.setup-brand {
 		display: flex;
@@ -717,16 +729,16 @@ BrowseSetup.style = css`
 	.mini-mark {
 		width: 10px;
 		height: 10px;
-		border: 1px solid #90c1fb;
+		border: 1px solid #83d6bd;
 		border-radius: 3px;
 		transform: rotate(45deg);
-		box-shadow: 0 0 12px rgba(117, 177, 248, 0.3);
+		box-shadow: 0 0 12px rgba(117, 216, 184, 0.24);
 	}
 	.setup-intro {
 		padding: 44px 0 23px;
 	}
 	.section-kicker {
-		color: #83b8f3;
+		color: #83d6bd;
 		font-size: 0.66rem;
 		font-weight: 720;
 		letter-spacing: 0.17em;
@@ -739,7 +751,7 @@ BrowseSetup.style = css`
 	}
 	.setup-intro p {
 		margin: 0;
-		color: #94a4bd;
+		color: #9aada5;
 		font-size: 0.9rem;
 	}
 	.field {
@@ -749,7 +761,7 @@ BrowseSetup.style = css`
 		min-width: 0;
 	}
 	.field-label {
-		color: #dce7f8;
+		color: #d7e7df;
 		font-size: 0.79rem;
 		font-weight: 620;
 	}
@@ -758,21 +770,21 @@ BrowseSetup.style = css`
 		width: 100%;
 		min-width: 0;
 		padding: 12px 13px;
-		border: 1px solid #283a55;
+		border: 1px solid #2b403e;
 		border-radius: 8px;
 		outline: none;
-		background: #0b1729;
-		color: #e6eefc;
+		background: #101b22;
+		color: #e5eee9;
 		font: inherit;
 		font-size: 0.86rem;
 	}
 	input::placeholder {
-		color: #647792;
+		color: #718780;
 	}
 	input:focus,
 	select:focus {
-		border-color: #77aef0;
-		box-shadow: 0 0 0 3px rgba(89, 150, 225, 0.13);
+		border-color: #78c8a9;
+		box-shadow: 0 0 0 3px rgba(89, 180, 145, 0.13);
 	}
 	select {
 		cursor: pointer;
@@ -785,26 +797,18 @@ BrowseSetup.style = css`
 	}
 	.query-input {
 		padding: 15px 16px;
-		border-color: #314968;
-		background: rgba(13, 26, 45, 0.92);
+		border-color: #36514a;
+		background: rgba(13, 27, 29, 0.92);
 		font-size: 0.95rem;
 	}
-	.field-hint,
-	.advanced-note {
+	.field-hint {
 		color: #7486a1;
 		font-size: 0.73rem;
 	}
 	.settings-card {
 		margin-top: 24px;
-		padding: 22px;
-		border: 1px solid rgba(127, 161, 207, 0.19);
-		border-radius: 13px;
-		background: linear-gradient(
-			145deg,
-			rgba(17, 32, 54, 0.92),
-			rgba(12, 24, 42, 0.88)
-		);
-		box-shadow: 0 18px 54px rgba(0, 0, 0, 0.12);
+		padding: 19px 0 0;
+		border-top: 1px solid rgba(158, 196, 185, 0.16);
 	}
 	.settings-card-heading {
 		display: flex;
@@ -821,13 +825,12 @@ BrowseSetup.style = css`
 	}
 	.settings-badge,
 	.optional-tag {
-		color: #7c91ae;
+		color: #81948a;
 		font-size: 0.58rem;
 		font-weight: 700;
 		letter-spacing: 0.1em;
 	}
-	.settings-grid,
-	.advanced-grid {
+	.settings-grid {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 14px;
@@ -837,86 +840,73 @@ BrowseSetup.style = css`
 		display: flex;
 		align-items: center;
 		gap: 12px;
+		min-width: 0;
 		margin-top: 20px;
 		padding: 15px 0;
-		border-top: 1px solid rgba(144, 169, 205, 0.12);
-		border-bottom: 1px solid rgba(144, 169, 205, 0.12);
+		border-top: 1px solid rgba(158, 196, 185, 0.12);
+		border-bottom: 1px solid rgba(158, 196, 185, 0.12);
 		cursor: pointer;
 	}
 	.switch-track {
-		flex: 0 0 36px;
-		height: 21px;
+		display: flex;
+		flex: 0 0 40px;
+		align-items: center;
+		box-sizing: border-box;
+		width: 40px;
+		height: 24px;
 		padding: 3px;
-		border: 1px solid #34445b;
-		border-radius: 20px;
-		background: #18263a;
+		border: 1px solid #354946;
+		border-radius: 999px;
+		background: #1b2a2b;
 		transition:
 			background 140ms ease,
 			border-color 140ms ease;
 	}
-	.switch-track span {
+	.switch-thumb {
 		display: block;
-		width: 13px;
-		height: 13px;
+		flex: 0 0 16px;
+		width: 16px;
+		height: 16px;
 		border-radius: 50%;
-		background: #8292a8;
+		background: #82968e;
 		transition:
 			transform 140ms ease,
 			background 140ms ease;
 	}
 	.cloak-toggle input:checked + .switch-track {
-		border-color: #79aef0;
-		background: #234d7d;
+		border-color: #78c8a9;
+		background: #285347;
 	}
 	.cloak-toggle input:checked + .switch-track span {
-		transform: translateX(15px);
-		background: #b8d7ff;
+		transform: translateX(16px);
+		background: #b7ecd4;
 	}
 	.cloak-toggle input:focus-visible + .switch-track {
-		outline: 2px solid #9bc7ff;
+		outline: 2px solid #9be1c3;
 		outline-offset: 3px;
 	}
 	.cloak-copy {
 		display: flex;
 		flex: 1;
 		flex-direction: column;
+		min-width: 0;
 		gap: 4px;
+	}
+	.optional-tag {
+		flex: 0 0 auto;
+		white-space: nowrap;
 	}
 	.cloak-copy strong {
 		font-size: 0.82rem;
 		font-weight: 630;
 	}
 	.cloak-copy small {
-		color: #8292aa;
+		color: #8da199;
 		font-size: 0.72rem;
 		line-height: 1.5;
 	}
 	.cloak-name {
 		margin: 16px 0;
-	}
-	.advanced-settings {
-		margin-top: 15px;
-		border-top: 1px solid rgba(144, 169, 205, 0.12);
-		padding-top: 15px;
-	}
-	.advanced-settings summary {
-		color: #cad8ec;
-		cursor: pointer;
-		font-size: 0.79rem;
-		font-weight: 620;
-	}
-	.advanced-settings summary span {
-		margin-left: 8px;
-		color: #7789a3;
-		font-size: 0.7rem;
-		font-weight: 400;
-	}
-	.advanced-grid {
-		margin-top: 16px;
-	}
-	.advanced-note {
-		margin: 11px 0 0;
-		line-height: 1.5;
 	}
 	.setup-error {
 		margin-top: 14px;
@@ -935,10 +925,10 @@ BrowseSetup.style = css`
 		width: 100%;
 		margin-top: 18px;
 		padding: 14px 18px;
-		border: 1px solid #a3c9ff;
-		border-radius: 9px;
-		background: linear-gradient(135deg, #b4d6ff, #86b6f5);
-		color: #09172a;
+		border: 1px solid #79cfb0;
+		border-radius: 8px;
+		background: linear-gradient(135deg, #a2e4c9, #78c6ab);
+		color: #10211d;
 		cursor: pointer;
 		font: inherit;
 		font-size: 0.88rem;
@@ -951,19 +941,26 @@ BrowseSetup.style = css`
 		filter: brightness(1.06);
 		transform: translateY(-1px);
 	}
+	.setup-arrow {
+		display: inline-block;
+		font-size: 1.3rem;
+		font-weight: 450;
+		line-height: 1;
+		transform: translateY(-1px);
+		transition: transform 160ms ease;
+	}
+	.browse-button:hover .setup-arrow {
+		transform: translate(3px, -1px);
+	}
 	.form-note {
 		margin: 12px 0 0;
-		color: #73839a;
+		color: #7d928a;
 		font-size: 0.7rem;
 		line-height: 1.55;
 		text-align: center;
 	}
 	@media (max-width: 580px) {
-		.settings-card {
-			padding: 17px;
-		}
-		.settings-grid,
-		.advanced-grid {
+		.settings-grid {
 			grid-template-columns: 1fr;
 		}
 		.settings-badge {
@@ -973,10 +970,6 @@ BrowseSetup.style = css`
 		}
 		.optional-tag {
 			display: none;
-		}
-		.advanced-settings summary span {
-			display: block;
-			margin: 5px 0 0;
 		}
 	}
 `;

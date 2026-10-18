@@ -93,7 +93,10 @@ const FlagEditor: Component<
 					this.isOpen = !this.isOpen;
 				}}
 			>
-				{use(this.isOpen).map((open) => (open ? "▼" : "▶"))} Flag Editor
+				<span class="toggle-arrow" aria-hidden="true">
+					{use(this.isOpen).map((open) => (open ? "↓" : "→"))}
+				</span>
+				Flag Editor
 			</button>
 			{use(this.isOpen).andThen(
 				<div class="editor-panel">
@@ -177,6 +180,15 @@ FlagEditor.style = css`
 		font-weight: 500;
 		text-align: left;
 		transition: background 0.2s;
+	}
+	.toggle-arrow {
+		display: inline-block;
+		margin-right: 0.45em;
+		color: #91cbb4;
+		font-size: 1.15em;
+		font-weight: 450;
+		line-height: 1;
+		transform: translateY(-1px);
 	}
 
 	:scope.inline .toggle-button {
