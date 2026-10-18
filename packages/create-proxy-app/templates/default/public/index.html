@@ -20,7 +20,8 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Scramjet Proxy Template (bootstrap)</title>
+		<meta name="theme-color" content="#080d0e" />
+		<title>Scramjet Proxy</title>
 		<link rel="stylesheet" href="/index.css" />
 
 		<!-- IMPORTANT: if you leave this line in, your proxy will not be indexed by search engines
@@ -31,50 +32,91 @@
 		<script src="/bootstrap-init.js"></script>
 	</head>
 	<body>
-		<div title="Scramjet Logo" class="flex-center logo-wrapper header-center">
-			<h1>Proxy App Template</h1>
-		</div>
-		<div class="flex-center desc left-margin">
-			<p>
-				Congratulations! You've successfully created a web proxy powered by
-				Scramjet and Wisp. Your proxy is now ready to be customized by editing
-				the public/index.html file.
-			</p>
-		</div>
+		<header class="topbar">
+			<a class="brand" href="/" aria-label="Scramjet Proxy home">
+				<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+				<span class="brand-copy">
+					<strong>SCRAMJET</strong>
+					<span>WEB PROXY</span>
+				</span>
+			</a>
+			<div class="connection-state">
+				<span class="connection-dot"></span>
+				<span>SYSTEM READY</span>
+			</div>
+		</header>
 
-		<form id="sj-form" class="flex-center">
-			<input
-				id="sj-search-engine"
-				value="https://www.google.com/search?q=%s"
-				type="hidden"
-			/>
-			<input id="sj-address" type="text" placeholder="Search the web freely" />
-		</form>
-		<div class="desc left-margin">
-			<p id="sj-error"></p>
-			<pre id="sj-error-code"></pre>
-		</div>
-		<footer>
-			<div>
-				<a
-					title="The Mercury Workshop GitHub organization"
-					href="https://github.com/MercuryWorkshop"
-					>Mercury Workshop</a
-				>
-				<a
-					title="The example demo app for Scramjet"
-					href="https://github.com/MercuryWorkshop/Scramjet-Demo"
-					>GitHub</a
-				>
-				<a title="License information" href="credits.html">Credits</a>
-			</div>
-			<div>
-				<span>Scramjet &copy; MW 2025</span>
-			</div>
+		<main class="home-screen">
+			<section class="launch-panel" aria-labelledby="welcome-title">
+				<div class="eyebrow"><span></span> OPEN WEB ACCESS</div>
+				<h1 id="welcome-title">Where to <span>next?</span></h1>
+				<p class="intro-copy">Search for something or enter a web address.</p>
+
+				<form id="sj-form" class="search-form">
+					<input
+						id="sj-search-engine"
+						value="https://www.google.com/search?q=%s"
+						type="hidden"
+					/>
+					<label class="visually-hidden" for="sj-address">
+						Search or enter a web address
+					</label>
+					<div class="search-control">
+						<span class="search-icon" aria-hidden="true"></span>
+						<input
+							id="sj-address"
+							type="text"
+							placeholder="Search or enter a URL"
+							autocomplete="off"
+							spellcheck="false"
+						/>
+						<button class="submit-action" type="submit">
+							Open <span aria-hidden="true">&#8599;</span>
+						</button>
+					</div>
+				</form>
+
+				<p id="sj-error" role="alert"></p>
+				<pre id="sj-error-code"></pre>
+
+				<section class="quick-access" aria-labelledby="quick-access-title">
+					<div class="section-heading">
+						<h2 id="quick-access-title">QUICK ACCESS</h2>
+						<span>01 / 04</span>
+					</div>
+					<div class="quick-links">
+						<button class="quick-link" type="button" data-url="https://google.com">
+							<span>Google</span><span aria-hidden="true">&#8599;</span>
+						</button>
+						<button class="quick-link" type="button" data-url="https://wikipedia.org">
+							<span>Wikipedia</span><span aria-hidden="true">&#8599;</span>
+						</button>
+						<button class="quick-link" type="button" data-url="https://github.com">
+							<span>GitHub</span><span aria-hidden="true">&#8599;</span>
+						</button>
+						<button class="quick-link" type="button" data-url="https://youtube.com">
+							<span>YouTube</span><span aria-hidden="true">&#8599;</span>
+						</button>
+					</div>
+				</section>
+			</section>
+		</main>
+
+		<footer class="site-footer">
+			<a href="https://github.com/MercuryWorkshop">MERCURY WORKSHOP</a>
+			<span>SCRAMJET &copy; 2026</span>
+			<a href="credits.html">CREDITS</a>
 		</footer>
 
 		<div id="sj-frame-wrapper">
-			<p id="sj-frame-url"></p>
+			<div id="sj-frame-toolbar">
+				<button id="sj-home" type="button">Home</button>
+				<p id="sj-frame-url"></p>
+				<label class="cloak-toggle" for="sj-tab-cloak">
+					<input id="sj-tab-cloak" type="checkbox" />
+					Tab cloaking
+				</label>
+			</div>
 			<iframe id="sj-frame"></iframe>
 		</div>
 
